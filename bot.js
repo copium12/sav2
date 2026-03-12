@@ -9,7 +9,9 @@ const client = new Client({
 const app = express();
 
 let viewers = 0;
+
 const memory = new Map();
+const cooldown = new Map();
 
 app.use(express.json());
 
@@ -82,18 +84,30 @@ client.on('messageCreate', async (message) => {
 
     }
 
-    // AI SYSTEM
+    // AI ONLY WHEN BOT IS MENTIONED
     if (!message.mentions.has(client.user)) return;
 
-    await message.channel.sendTyping();
+    const cleanMessage = message.content.replace(`<@${client.user.id}>`, "").trim();
 
+    // PLAYER COUNT SMART RESPONSE
+    if (cleanMessage.toLowerCase().includes("players") || cleanMessage.toLowerCase().includes("online")) {
+        return message.reply(`🟢 There are currently **${viewers} players online** in Stick Arena V2.`);
+    }
+
+    // COOLDOWN (5 seconds)
     const userId = message.author.id;
+
+    if (cooldown.get(userId) > Date.now()) {
+        return message.reply("⏳ Slow down a bit.");
+    }
+
+    cooldown.set(userId, Date.now() + 5000);
+
+    await message.channel.sendTyping();
 
     if (!memory.has(userId)) memory.set(userId, []);
 
     const history = memory.get(userId);
-
-    const cleanMessage = message.content.replace(`<@${client.user.id}>`, "").trim();
 
     history.push({
         role: "user",
@@ -111,7 +125,7 @@ client.on('messageCreate', async (message) => {
                 messages: [
                     {
                         role: "system",
-                        content: "You are a helpful assistant for the Stick Arena V2 Discord server."
+                        content: "You are the assistant for the Stick Arena V2 Discord server. Be helpful, short, and friendly."
                     },
                     ...history
                 ]
@@ -138,7 +152,7 @@ client.on('messageCreate', async (message) => {
     } catch (err) {
 
         console.log("AI ERROR:", err.response?.data || err.message);
-        message.reply("AI failed to respond.");
+        message.reply("⚠️ AI failed to respond.");
 
     }
 
