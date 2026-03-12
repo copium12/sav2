@@ -15,11 +15,12 @@ const cooldown = new Map();
 
 app.use(express.json());
 
-// HEALTH CHECK FOR UPTIMEROBOT
+/* HEALTH CHECK FOR UPTIMEROBOT */
 app.get("/", (req, res) => {
     res.send("Bot is alive");
 });
 
+/* PLAYER TRACKING */
 app.post("/join", (req,res)=>{
     viewers++;
     console.log("viewer joined:", viewers);
@@ -32,6 +33,7 @@ app.post("/leave", (req,res)=>{
     res.sendStatus(200);
 });
 
+/* BOT READY */
 client.once('clientReady', () => {
 
     console.log("Stick Arena Bot Online");
@@ -47,14 +49,14 @@ client.once('clientReady', () => {
             const button = new ButtonBuilder()
                 .setLabel("JOIN SAV2 NOW ⚔️")
                 .setStyle(ButtonStyle.Link)
-                .setURL("https://stickarenav2.netlify.app");
+                .setURL("https://us.stickarena.fun/");
 
             const row = new ActionRowBuilder().addComponents(button);
 
             await channel.send({
                 content: `⚔️ **STICK ARENA V2**
 
-🟢 𝙊𝙣𝙡𝙞𝙣𝙚 𝘾𝙤𝙪𝙣𝙩 ${viewers}`,
+🟢 Online Count ${viewers}`,
                 components: [row]
             });
 
@@ -66,44 +68,88 @@ client.once('clientReady', () => {
 
 });
 
+/* MESSAGE HANDLER */
 client.on('messageCreate', async (message) => {
 
     if (message.author.bot) return;
 
-    // GAME COMMAND
+    /* GAME COMMAND */
     if (message.content === "!game") {
 
         const button = new ButtonBuilder()
             .setLabel("JOIN SAV2 NOW ⚔️")
             .setStyle(ButtonStyle.Link)
-            .setURL("https://stickarenav2.netlify.app");
+            .setURL("https://us.stickarena.fun/");
 
         const row = new ActionRowBuilder().addComponents(button);
 
         await message.channel.send({
             content: `⚔️ **STICK ARENA V2**
 
-🟢 𝙊𝙣𝙡𝙞𝙣𝙚 𝘾𝙤𝙪𝙣𝙩 ${viewers}`,
+🟢 Online Count ${viewers}`,
             components: [row]
         });
 
     }
 
-    // AI ONLY WHEN BOT IS MENTIONED
     if (!message.mentions.has(client.user)) return;
 
-    const cleanMessage = message.content.replace(`<@${client.user.id}>`, "").trim();
+    const cleanMessage = message.content
+        .replace(`<@${client.user.id}>`, "")
+        .trim()
+        .toLowerCase();
 
-    // PLAYER COUNT SMART RESPONSE
-    if (cleanMessage.toLowerCase().includes("players") || cleanMessage.toLowerCase().includes("online")) {
-        return message.reply(`🟢 There are currently **${viewers} players online** in Stick Arena V2.`);
+    /* RULES RESPONSE */
+    if (cleanMessage.includes("rules")) {
+        return message.reply(`
+We’re adults.
+Act like it.
+
+No slurs.
+No racist or homophobic shit.
+
+Trolling is cool.
+Being toxic every day, starting drama, or constantly targeting people isn’t.
+
+Don’t bring outside beef in here.
+Handle it in DMs.
+
+If staff tells you to chill, chill.
+
+We’ll usually do:
+Warning → Another warning → Talk → Timeout → Ban
+
+Some stuff skips steps.
+
+Simple: don’t make the server worse for everyone else.
+`);
+    }
+
+    /* PLAY LINK */
+    if (
+        cleanMessage.includes("play") ||
+        cleanMessage.includes("join") ||
+        cleanMessage.includes("where")
+    ) {
+        return message.reply(`
+Yo bro you can play Stick Arena right here:
+
+https://us.stickarena.fun/
+
+Just load it up and hop in a match.
+`);
+    }
+
+    /* PLAYER COUNT */
+    if (cleanMessage.includes("players") || cleanMessage.includes("online")) {
+        return message.reply(`🟢 Yo gang we got **${viewers} players online** right now.`);
     }
 
     const userId = message.author.id;
 
-    // COOLDOWN
+    /* COOLDOWN */
     if (cooldown.get(userId) > Date.now()) {
-        return message.reply("⏳ Slow down a bit.");
+        return message.reply("⏳ Chill for a second bro.");
     }
 
     cooldown.set(userId, Date.now() + 5000);
@@ -130,7 +176,24 @@ client.on('messageCreate', async (message) => {
                 messages: [
                     {
                         role: "system",
-                        content: "You are the assistant for the Stick Arena V2 Discord server. Be helpful, short, and friendly."
+                     content: `
+You are SAV2, the assistant for the Stick Arena V2 Discord server.
+
+Your personality:
+• talk casually like you're part of the community
+• sometimes say things like bro, gang, yo
+• keep responses short and natural
+
+Server knowledge:
+• official game site: https://us.stickarena.fun/
+• help players understand rules and how to join
+
+General knowledge:
+• you can answer normal questions about weather, technology, history, etc.
+• if a question isn't about the server, still answer it normally
+
+Always stay respectful and helpful.
+`
                     },
                     ...history
                 ]
@@ -157,7 +220,7 @@ client.on('messageCreate', async (message) => {
     } catch (err) {
 
         console.log("AI ERROR:", err.response?.data || err.message);
-        message.reply("⚠️ AI failed to respond.");
+        message.reply("⚠️ AI bugged out for a second gang.");
 
     }
 
@@ -165,6 +228,7 @@ client.on('messageCreate', async (message) => {
 
 client.login(process.env.TOKEN);
 
+/* EXPRESS SERVER */
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
