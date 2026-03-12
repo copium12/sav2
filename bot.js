@@ -7,7 +7,7 @@ const client = new Client({
 
 const app = express();
 
-let viewers = Math.max(0, viewers - 1);
+let viewers = 0;
 
 app.use(express.json());
 
@@ -18,7 +18,7 @@ app.post("/join", (req,res)=>{
 });
 
 app.post("/leave", (req,res)=>{
-    viewers--;
+    viewers = Math.max(0, viewers - 1);
     console.log("viewer left:", viewers);
     res.sendStatus(200);
 });
@@ -42,6 +42,7 @@ client.once('ready', () => {
 
     }, 5000);
 });
+
 client.on('messageCreate', async (message) => {
 
     if (message.content === "!arena") {
@@ -53,10 +54,10 @@ client.on('messageCreate', async (message) => {
 
         const row = new ActionRowBuilder().addComponents(button);
 
-        panelMessage = await message.channel.send({
+        await message.channel.send({
             content: `⚔️ **STICK ARENA V2**
 
-🟢 𝙊𝙣𝙡𝙞𝙣𝙚 𝘾𝙤𝙪𝙣𝙩${viewers}`,
+🟢 𝙊𝙣𝙡𝙞𝙣𝙚 𝘾𝙤𝙪𝙣𝙩 ${viewers}`,
             components: [row]
         });
 
