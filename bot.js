@@ -110,7 +110,7 @@ client.on('messageCreate', async (message) => {
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
-                model: "mistralai/mistral-7b-instruct:free",
+                model: "openchat/openchat-7b:free",
                 messages: [
                     {
                         role: "system",
@@ -139,11 +139,9 @@ client.on('messageCreate', async (message) => {
         message.reply(reply);
 
     } catch (err) {
-
-        console.log(err);
-        message.reply("AI failed to respond.");
-
-    }
+    console.log(err.response?.data || err.message);
+    message.reply("AI failed to respond.");
+}
 
 });
 
