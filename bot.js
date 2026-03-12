@@ -106,20 +106,25 @@ client.on('messageCreate', async (message) => {
     try {
 
         const response = await axios.post(
-            "https://api.itsrose.rest/chatGPT/turbo",
+            "https://api.deepinfra.com/v1/openai/chat/completions",
             {
-                model: "gpt-3.5-turbo",
+                model: "meta-llama/Meta-Llama-3-8B-Instruct",
                 messages: [
                     {
                         role: "system",
-                        content: "You are a helpful Discord assistant for Stick Arena V2. Keep responses short and friendly."
+                        content: "You are a helpful Discord assistant for Stick Arena V2. Keep responses short."
                     },
                     ...history
                 ]
+            },
+            {
+                headers: {
+                    "Content-Type": "application/json"
+                }
             }
         );
 
-        const reply = response.data.result;
+        const reply = response.data.choices[0].message.content;
 
         history.push({
             role: "assistant",
