@@ -1,5 +1,8 @@
 const { Client, GatewayIntentBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const express = require('express');
+const axios = require('axios');
+
+const OPENROUTER_KEY = "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";
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
@@ -8,6 +11,9 @@ const client = new Client({
 const app = express();
 
 let viewers = 0;
+
+// memory for AI conversations
+const memory = new Map();
 
 app.use(express.json());
 
@@ -28,7 +34,6 @@ client.once('ready', () => {
 
     const channelId = "1481485311967100938";
 
-    // Auto-post join message every 30 minutes
     setInterval(async () => {
 
         try {
@@ -59,6 +64,9 @@ client.once('ready', () => {
 
 client.on('messageCreate', async (message) => {
 
+    if (message.author.bot) return;
+
+    // GAME COMMAND
     if (message.content === "!game") {
 
         const button = new ButtonBuilder()
@@ -74,6 +82,66 @@ client.on('messageCreate', async (message) => {
 🟢 𝙊𝙣𝙡𝙞𝙣𝙚 𝘾𝙤𝙪𝙣𝙩 ${viewers}`,
             components: [row]
         });
+
+    }
+
+    // AI SYSTEM (only when bot is mentioned)
+    if (!message.mentions.has(client.user)) return;
+
+    await message.channel.sendTyping();
+
+    const userId = message.author.id;
+
+    if (!memory.has(userId)) memory.set(userId, []);
+
+    const history = memory.get(userId);
+
+    const cleanMessage = message.content.replace(`<@${client.user.id}>`, "").trim();
+
+    history.push({
+        role: "user",
+        content: cleanMessage
+    });
+
+    if (history.length > 6) history.shift();
+
+    try {
+
+        const response = await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+                model: "mistralai/mistral-7b-instruct:free",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a helpful Discord assistant for a gaming community called Stick Arena V2. Keep responses short and friendly."
+                    },
+                    ...history
+                ]
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${OPENROUTER_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        const reply = response.data.choices[0].message.content;
+
+        history.push({
+            role: "assistant",
+            content: reply
+        });
+
+        memory.set(userId, history);
+
+        message.reply(reply);
+
+    } catch (err) {
+
+        console.log(err);
+        message.reply("AI failed to respond.");
 
     }
 
