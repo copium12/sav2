@@ -27,13 +27,14 @@ app.post("/leave", (req,res)=>{
     res.sendStatus(200);
 });
 
-client.once('ready', () => {
+client.once('clientReady', () => {
     console.log("Stick Arena Bot Online");
 
     const channelId = "1481485311967100938";
 
     setInterval(async () => {
         try {
+
             const channel = await client.channels.fetch(channelId);
 
             const button = new ButtonBuilder()
@@ -77,6 +78,7 @@ client.on('messageCreate', async (message) => {
 🟢 𝙊𝙣𝙡𝙞𝙣𝙚 𝘾𝙤𝙪𝙣𝙩 ${viewers}`,
             components: [row]
         });
+
     }
 
     // AI SYSTEM
@@ -102,7 +104,7 @@ client.on('messageCreate', async (message) => {
     try {
 
         const response = await axios.post(
-            "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.1"
+            "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.1",
             {
                 inputs: cleanMessage
             }
