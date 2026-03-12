@@ -102,7 +102,7 @@ client.on('messageCreate', async (message) => {
     try {
 
         const response = await axios.post(
-            "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1",
+            "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.1"
             {
                 inputs: cleanMessage
             }
