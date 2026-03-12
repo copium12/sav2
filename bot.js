@@ -1,11 +1,46 @@
 const { Client, GatewayIntentBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+const express = require('express');
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
 
+const app = express();
+
+let viewers = 0;
+
+app.use(express.json());
+
+app.post("/join", (req,res)=>{
+    viewers++;
+    console.log("viewer joined:", viewers);
+    res.sendStatus(200);
+});
+
+app.post("/leave", (req,res)=>{
+    viewers--;
+    console.log("viewer left:", viewers);
+    res.sendStatus(200);
+});
+
 client.once('ready', () => {
     console.log("Stick Arena Bot Online");
+
+    const channelId = "PASTE_CHANNEL_ID_HERE";
+
+    setInterval(async () => {
+        try {
+            const channel = await client.channels.fetch(channelId);
+
+            if(channel){
+                channel.setName(`👀 arena-viewers: ${viewers}`);
+            }
+
+        } catch(err){
+            console.log(err);
+        }
+
+    }, 5000);
 });
 
 client.on('messageCreate', async (message) => {
@@ -15,8 +50,7 @@ client.on('messageCreate', async (message) => {
         const button = new ButtonBuilder()
             .setLabel("JOIN SAV2 ⚔️")
             .setStyle(ButtonStyle.Link)
-            .setURL("https://stickarenav2.netlify.app")
-
+            .setURL("https://stickarenav2.netlify.app");
 
         const row = new ActionRowBuilder().addComponents(button);
 
@@ -30,3 +64,9 @@ client.on('messageCreate', async (message) => {
 });
 
 client.login(process.env.TOKEN);
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`Tracker running on port ${PORT}`);
+});
