@@ -9,8 +9,6 @@ const client = new Client({
 const app = express();
 
 let viewers = 0;
-
-// memory for AI conversations
 const memory = new Map();
 
 app.use(express.json());
@@ -28,11 +26,13 @@ app.post("/leave", (req,res)=>{
 });
 
 client.once('clientReady', () => {
+
     console.log("Stick Arena Bot Online");
 
     const channelId = "1481485311967100938";
 
     setInterval(async () => {
+
         try {
 
             const channel = await client.channels.fetch(channelId);
@@ -56,6 +56,7 @@ client.once('clientReady', () => {
         }
 
     }, 1800000);
+
 });
 
 client.on('messageCreate', async (message) => {
@@ -101,33 +102,45 @@ client.on('messageCreate', async (message) => {
 
     if (history.length > 6) history.shift();
 
-   try {
+    try {
 
-    const response = await axios.get(
-      "https://duckduckgo.com/?q=" + encodeURIComponent(cleanMessage) + "&ia=chat"
-    );
+        const response = await axios.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            {
+                model: "llama3-8b-8192",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a helpful assistant for the Stick Arena V2 Discord server."
+                    },
+                    ...history
+                ]
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.GROQ_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
 
-    let reply = "I'm not sure how to answer that.";
+        const reply = response.data.choices[0].message.content;
 
-    if (typeof response.data === "string") {
-        reply = response.data.slice(0, 300);
+        history.push({
+            role: "assistant",
+            content: reply
+        });
+
+        memory.set(userId, history);
+
+        message.reply(reply);
+
+    } catch (err) {
+
+        console.log("AI ERROR:", err.response?.data || err.message);
+        message.reply("AI failed to respond.");
+
     }
-
-    history.push({
-        role: "assistant",
-        content: reply
-    });
-
-    memory.set(userId, history);
-
-    message.reply(reply);
-
-} catch (err) {
-
-    console.log("AI ERROR:", err.response?.data || err.message);
-    message.reply("AI failed to respond.");
-
-}
 
 });
 
