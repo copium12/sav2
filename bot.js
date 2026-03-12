@@ -1,7 +1,7 @@
 const { Client, GatewayIntentBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const express = require('express');
 const axios = require('axios');
- 
+
 const OPENROUTER_KEY = process.env.OPENROUTER_KEY;
 
 const client = new Client({
@@ -85,7 +85,7 @@ client.on('messageCreate', async (message) => {
 
     }
 
-    // AI SYSTEM (only when bot is mentioned)
+    // AI SYSTEM
     if (!message.mentions.has(client.user)) return;
 
     await message.channel.sendTyping();
@@ -110,11 +110,11 @@ client.on('messageCreate', async (message) => {
         const response = await axios.post(
             "https://openrouter.ai/api/v1/chat/completions",
             {
-                model: "mistralai/mistral-7b-instruct:free",
+                model: "meta-llama/llama-3-8b-instruct:free",
                 messages: [
                     {
                         role: "system",
-                        content: "You are a helpful Discord assistant for a gaming community called Stick Arena V2. Keep responses short and friendly."
+                        content: "You are a helpful Discord assistant for the Stick Arena V2 community. Keep replies short."
                     },
                     ...history
                 ]
@@ -122,7 +122,9 @@ client.on('messageCreate', async (message) => {
             {
                 headers: {
                     Authorization: `Bearer ${OPENROUTER_KEY}`,
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://render.com",
+                    "X-Title": "StickArenaBot"
                 }
             }
         );
@@ -139,9 +141,11 @@ client.on('messageCreate', async (message) => {
         message.reply(reply);
 
     } catch (err) {
-    console.log(err.response?.data || err.message);
-    message.reply("AI failed to respond.");
-}
+
+        console.log("AI ERROR:", err.response?.data || err.message);
+        message.reply("AI failed to respond.");
+
+    }
 
 });
 
