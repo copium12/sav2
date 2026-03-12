@@ -15,6 +15,11 @@ const cooldown = new Map();
 
 app.use(express.json());
 
+// HEALTH CHECK FOR UPTIMEROBOT
+app.get("/", (req, res) => {
+    res.send("Bot is alive");
+});
+
 app.post("/join", (req,res)=>{
     viewers++;
     console.log("viewer joined:", viewers);
@@ -94,9 +99,9 @@ client.on('messageCreate', async (message) => {
         return message.reply(`🟢 There are currently **${viewers} players online** in Stick Arena V2.`);
     }
 
-    // COOLDOWN (5 seconds)
     const userId = message.author.id;
 
+    // COOLDOWN
     if (cooldown.get(userId) > Date.now()) {
         return message.reply("⏳ Slow down a bit.");
     }
