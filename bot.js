@@ -1,8 +1,8 @@
 const { Client, GatewayIntentBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const express = require('express');
 const axios = require('axios');
-
-const OPENROUTER_KEY = "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";
+ 
+const OPENROUTER_KEY = process.env.OPENROUTER_KEY;
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
