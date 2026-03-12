@@ -28,6 +28,7 @@ client.once('ready', () => {
 
     const channelId = "1481474691917942854";
 
+    // Update channel viewer count
     setInterval(async () => {
         try {
             const channel = await client.channels.fetch(channelId);
@@ -41,6 +42,33 @@ client.once('ready', () => {
         }
 
     }, 5000);
+
+    // Auto-post join message every 30 minutes
+    setInterval(async () => {
+
+        try {
+
+            const channel = await client.channels.fetch(channelId);
+
+            const button = new ButtonBuilder()
+                .setLabel("ENTER ARENA ⚔️")
+                .setStyle(ButtonStyle.Link)
+                .setURL("https://stickarenav2.netlify.app");
+
+            const row = new ActionRowBuilder().addComponents(button);
+
+            await channel.send({
+                content: `⚔️ **STICK ARENA V2**
+
+🟢 𝙊𝙣𝙡𝙞𝙣𝙚 𝘾𝙤𝙪𝙣𝙩 ${viewers}`,
+                components: [row]
+            });
+
+        } catch(err){
+            console.log(err);
+        }
+
+    }, 1800000); // 30 minutes
 });
 
 client.on('messageCreate', async (message) => {
