@@ -26,23 +26,10 @@ app.post("/leave", (req,res)=>{
 client.once('ready', () => {
     console.log("Stick Arena Bot Online");
 
-    const channelId = "1481474691917942854";
+    const channelId = "1481485311967100938";
 
-    // Update channel viewer count
-    setInterval(async () => {
-        try {
-            const channel = await client.channels.fetch(channelId);
-
-            if(channel){
-                channel.setName(`🟢┃𝙊𝙣𝙡𝙞𝙣𝙚 𝘾𝙤𝙪𝙣𝙩-${viewers}`);
-            }
-
-        } catch(err){
-            console.log(err);
-        }
-
-    }, 5000);
-
+   
+   
     // Auto-post join message every 30 minutes
     setInterval(async () => {
 
@@ -51,7 +38,7 @@ client.once('ready', () => {
             const channel = await client.channels.fetch(channelId);
 
             const button = new ButtonBuilder()
-                .setLabel("ENTER ARENA ⚔️")
+                .setLabel("JOIN SAV2 NOW ⚔️")
                 .setStyle(ButtonStyle.Link)
                 .setURL("https://stickarenav2.netlify.app");
 
@@ -76,7 +63,7 @@ client.on('messageCreate', async (message) => {
     if (message.content === "!arena") {
 
         const button = new ButtonBuilder()
-            .setLabel("ENTER ARENA ⚔️")
+            .setLabel("JOIN SAV2 NOW ⚔️")
             .setStyle(ButtonStyle.Link)
             .setURL("https://stickarenav2.netlify.app");
 
