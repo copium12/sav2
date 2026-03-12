@@ -101,36 +101,33 @@ client.on('messageCreate', async (message) => {
 
     if (history.length > 6) history.shift();
 
-    try {
+   try {
 
-        const response = await axios.post(
-            "https://router.huggingface.co/hf-inference/models/mistralai/Mistral-7B-Instruct-v0.1",
-            {
-                inputs: cleanMessage
-            }
-        );
+    const response = await axios.get(
+      "https://duckduckgo.com/?q=" + encodeURIComponent(cleanMessage) + "&ia=chat"
+    );
 
-        let reply = "I couldn't generate a response.";
+    let reply = "I'm not sure how to answer that.";
 
-        if (Array.isArray(response.data) && response.data[0]?.generated_text) {
-            reply = response.data[0].generated_text.replace(cleanMessage, "").trim();
-        }
-
-        history.push({
-            role: "assistant",
-            content: reply
-        });
-
-        memory.set(userId, history);
-
-        message.reply(reply);
-
-    } catch (err) {
-
-        console.log("AI ERROR:", err.response?.data || err.message);
-        message.reply("AI failed to respond.");
-
+    if (typeof response.data === "string") {
+        reply = response.data.slice(0, 300);
     }
+
+    history.push({
+        role: "assistant",
+        content: reply
+    });
+
+    memory.set(userId, history);
+
+    message.reply(reply);
+
+} catch (err) {
+
+    console.log("AI ERROR:", err.response?.data || err.message);
+    message.reply("AI failed to respond.");
+
+}
 
 });
 
