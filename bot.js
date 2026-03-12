@@ -55,12 +55,12 @@ client.once('ready', () => {
             console.log(err);
         }
 
-    }, 60000); // 30 minutes
+    }, 1800000); // 30 minutes
 });
 
 client.on('messageCreate', async (message) => {
 
-    if (message.content === "!arena") {
+    if (message.content === "!bot") {
 
         const button = new ButtonBuilder()
             .setLabel("JOIN SAV2 NOW ⚔️")
