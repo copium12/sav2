@@ -7,7 +7,7 @@ const client = new Client({
 
 const app = express();
 
-let viewers = 0;
+let viewers = Math.max(0, viewers - 1);
 
 app.use(express.json());
 
@@ -33,7 +33,7 @@ client.once('ready', () => {
             const channel = await client.channels.fetch(channelId);
 
             if(channel){
-                channel.setName(`👀 arena-viewers: ${viewers}`);
+                channel.setName(`🟢┃𝙊𝙣𝙡𝙞𝙣𝙚 𝘾𝙤𝙪𝙣𝙩-${viewers}`);
             }
 
         } catch(err){
@@ -42,20 +42,21 @@ client.once('ready', () => {
 
     }, 5000);
 });
-
 client.on('messageCreate', async (message) => {
 
     if (message.content === "!arena") {
 
         const button = new ButtonBuilder()
-            .setLabel("JOIN SAV2 ⚔️")
+            .setLabel("ENTER ARENA ⚔️")
             .setStyle(ButtonStyle.Link)
             .setURL("https://stickarenav2.netlify.app");
 
         const row = new ActionRowBuilder().addComponents(button);
 
-        message.channel.send({
-            content: "⚔️ **Stick Arena V2**\nJoin now below!",
+        panelMessage = await message.channel.send({
+            content: `⚔️ **STICK ARENA V2**
+
+🟢 𝙊𝙣𝙡𝙞𝙣𝙚 𝘾𝙤𝙪𝙣𝙩${viewers}`,
             components: [row]
         });
 
