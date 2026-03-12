@@ -26,7 +26,7 @@ app.post("/leave", (req,res)=>{
 client.once('ready', () => {
     console.log("Stick Arena Bot Online");
 
-    const channelId = "PASTE_CHANNEL_ID_HERE";
+    const channelId = "1481474691917942854";
 
     setInterval(async () => {
         try {
