@@ -33,9 +33,7 @@ client.once('ready', () => {
     const channelId = "1481485311967100938";
 
     setInterval(async () => {
-
         try {
-
             const channel = await client.channels.fetch(channelId);
 
             const button = new ButtonBuilder()
@@ -57,7 +55,6 @@ client.once('ready', () => {
         }
 
     }, 1800000);
-
 });
 
 client.on('messageCreate', async (message) => {
@@ -80,7 +77,6 @@ client.on('messageCreate', async (message) => {
 🟢 𝙊𝙣𝙡𝙞𝙣𝙚 𝘾𝙤𝙪𝙣𝙩 ${viewers}`,
             components: [row]
         });
-
     }
 
     // AI SYSTEM
@@ -106,25 +102,17 @@ client.on('messageCreate', async (message) => {
     try {
 
         const response = await axios.post(
-            "https://api.deepinfra.com/v1/openai/chat/completions",
+            "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1",
             {
-                model: "meta-llama/Meta-Llama-3-8B-Instruct",
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are a helpful Discord assistant for Stick Arena V2. Keep responses short."
-                    },
-                    ...history
-                ]
-            },
-            {
-                headers: {
-                    "Content-Type": "application/json"
-                }
+                inputs: cleanMessage
             }
         );
 
-        const reply = response.data.choices[0].message.content;
+        let reply = "I couldn't generate a response.";
+
+        if (Array.isArray(response.data) && response.data[0]?.generated_text) {
+            reply = response.data[0].generated_text.replace(cleanMessage, "").trim();
+        }
 
         history.push({
             role: "assistant",
