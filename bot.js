@@ -55,7 +55,7 @@ client.once('ready', () => {
             console.log(err);
         }
 
-    }, 1800000); // 30 minutes
+    }, 60000); // 30 minutes
 });
 
 client.on('messageCreate', async (message) => {
