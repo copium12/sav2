@@ -15,6 +15,30 @@ const cooldown = new Map();
 
 app.use(express.json());
 
+/* PUT YOUR PLAYER COUNT CHANNEL ID HERE */
+const playerChannelId = "1481485311967100938";
+
+/* UPDATE PLAYER COUNT CHANNEL */
+async function updatePlayerChannel() {
+
+    try {
+
+        const channel = await client.channels.fetch(playerChannelId);
+
+        if (!channel) return;
+
+        const newName = `🟢┃𝙊𝙉𝙇𝙄𝙉𝙀 𝘾𝙊𝙐𝙉𝙏:${viewers}`;
+
+        if (channel.name !== newName) {
+            await channel.setName(newName);
+        }
+
+    } catch (err) {
+        console.log("Channel update error:", err);
+    }
+
+}
+
 /* HEALTH CHECK FOR UPTIMEROBOT */
 app.get("/", (req, res) => {
     res.send("Bot is alive");
@@ -22,49 +46,35 @@ app.get("/", (req, res) => {
 
 /* PLAYER TRACKING */
 app.post("/join", (req,res)=>{
+
     viewers++;
+
     console.log("viewer joined:", viewers);
+
+    updatePlayerChannel();
+
     res.sendStatus(200);
+
 });
 
 app.post("/leave", (req,res)=>{
+
     viewers = Math.max(0, viewers - 1);
+
     console.log("viewer left:", viewers);
+
+    updatePlayerChannel();
+
     res.sendStatus(200);
+
 });
 
 /* BOT READY */
-client.once('clientReady', () => {
+client.once('clientReady', async () => {
 
     console.log("Stick Arena Bot Online");
 
-    const channelId = "1481485311967100938";
-
-    setInterval(async () => {
-
-        try {
-
-            const channel = await client.channels.fetch(channelId);
-
-            const button = new ButtonBuilder()
-                .setLabel("JOIN SAV2 NOW ⚔️")
-                .setStyle(ButtonStyle.Link)
-                .setURL("https://us.stickarena.fun/");
-
-            const row = new ActionRowBuilder().addComponents(button);
-
-            await channel.send({
-                content: `⚔️ **STICK ARENA V2**
-
-🟢 Online Count ${viewers}`,
-                components: [row]
-            });
-
-        } catch(err){
-            console.log(err);
-        }
-
-    }, 1800000);
+    updatePlayerChannel();
 
 });
 
@@ -176,23 +186,16 @@ Just load it up and hop in a match.
                 messages: [
                     {
                         role: "system",
-                     content: `
+                        content: `
 You are SAV2, the assistant for the Stick Arena V2 Discord server.
 
-Your personality:
-• talk casually like you're part of the community
-• sometimes say things like bro, gang, yo
-• keep responses short and natural
+Talk casually like you're part of the community.
+Use slang sometimes like bro, gang, yo.
 
-Server knowledge:
-• official game site: https://us.stickarena.fun/
-• help players understand rules and how to join
+Official game site:
+https://us.stickarena.fun/
 
-General knowledge:
-• you can answer normal questions about weather, technology, history, etc.
-• if a question isn't about the server, still answer it normally
-
-Always stay respectful and helpful.
+You can answer normal questions about weather, technology, history, etc.
 `
                     },
                     ...history
