@@ -2,8 +2,6 @@ const { Client, GatewayIntentBits, ButtonBuilder, ButtonStyle, ActionRowBuilder 
 const express = require('express');
 const axios = require('axios');
 
-const OPENROUTER_KEY = process.env.OPENROUTER_KEY;
-
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
@@ -108,28 +106,20 @@ client.on('messageCreate', async (message) => {
     try {
 
         const response = await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
+            "https://api.itsrose.rest/chatGPT/turbo",
             {
-                model: "meta-llama/llama-3-8b-instruct",
+                model: "gpt-3.5-turbo",
                 messages: [
                     {
                         role: "system",
-                        content: "You are a helpful Discord assistant for the Stick Arena V2 community. Keep replies short."
+                        content: "You are a helpful Discord assistant for Stick Arena V2. Keep responses short and friendly."
                     },
                     ...history
                 ]
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${OPENROUTER_KEY}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://render.com",
-                    "X-Title": "StickArenaBot"
-                }
             }
         );
 
-        const reply = response.data.choices[0].message.content;
+        const reply = response.data.result;
 
         history.push({
             role: "assistant",
