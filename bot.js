@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const express = require('express');
 const axios = require('axios');
+const fs = require("fs");
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
@@ -13,12 +14,21 @@ let viewers = 0;
 const memory = new Map();
 const cooldown = new Map();
 
+/* ROLE THAT CAN TRAIN THE AI */
+const knowledgeRoleId = "1032830761314832448";
+
+/* LOAD KNOWLEDGE FILE */
+let knowledge = [];
+
+if (fs.existsSync("knowledge.json")) {
+    knowledge = JSON.parse(fs.readFileSync("knowledge.json"));
+}
+
 app.use(express.json());
 
-/* PUT YOUR PLAYER COUNT CHANNEL ID HERE */
+/* PLAYER COUNT CHANNEL */
 const playerChannelId = "1481485311967100938";
 
-/* UPDATE PLAYER COUNT CHANNEL */
 async function updatePlayerChannel() {
 
     try {
@@ -39,7 +49,7 @@ async function updatePlayerChannel() {
 
 }
 
-/* HEALTH CHECK FOR UPTIMEROBOT */
+/* HEALTH CHECK */
 app.get("/", (req, res) => {
     res.send("Bot is alive");
 });
@@ -82,6 +92,29 @@ client.once('clientReady', async () => {
 client.on('messageCreate', async (message) => {
 
     if (message.author.bot) return;
+
+    const learnText = message.content.toLowerCase();
+
+    /* LEARN ONLY FROM TRAINER ROLE */
+    if (
+        message.member &&
+        message.member.roles.cache.has(knowledgeRoleId) &&
+        learnText.length > 20 &&
+        !learnText.startsWith("!") &&
+        !learnText.includes("http") &&
+        !learnText.includes("@")
+    ) {
+
+        knowledge.push(learnText);
+
+        if (knowledge.length > 200) {
+            knowledge.shift();
+        }
+
+        fs.writeFileSync("knowledge.json", JSON.stringify(knowledge, null, 2));
+
+        console.log("AI learned:", learnText);
+    }
 
     /* GAME COMMAND */
     if (message.content === "!game") {
@@ -185,17 +218,28 @@ Just load it up and hop in a match.
                 model: "llama-3.1-8b-instant",
                 messages: [
                     {
-                        role: "system",
-                        content: `
+                   role: "system",
+content: `
 You are SAV2, the assistant for the Stick Arena V2 Discord server.
+
+Stick Arena Background Knowledge:
+The original Stick Arena was a multiplayer browser fighting game made by XGen Studios.
+Players controlled stick figures fighting in arenas using different weapons.
+Weapons included pistols, shotguns, uzis, grenades, and other pickups.
+Matches were fast-paced arena battles with multiple players fighting at once.
+
+Stick Arena V2:
+Stick Arena V2 is inspired by the original XGen Stick Arena game.
+It recreates the fast stickman arena combat but for modern browsers and a new community.
+
+Official site:
+https://us.stickarena.fun/
 
 Talk casually like you're part of the community.
 Use slang sometimes like bro, gang, yo.
 
-Official game site:
-https://us.stickarena.fun/
-
-You can answer normal questions about weather, technology, history, etc.
+Recent server knowledge:
+${knowledge.slice(-15).join("\n")}
 `
                     },
                     ...history
