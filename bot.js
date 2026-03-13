@@ -37,7 +37,7 @@ async function updatePlayerChannel() {
 
         if (!channel) return;
 
-        const newName = `🟢┃𝙊𝙉𝙇𝙄𝙉𝙀 𝘾𝙊𝙐𝙉𝙏:${viewers}`;
+        const newName = `🟢┃𝙊𝙉𝙇𝙄𝙉𝙀 𝘾𝙊𝙐𝙉𝙏 ${viewers}`;
 
         if (channel.name !== newName) {
             await channel.setName(newName);
