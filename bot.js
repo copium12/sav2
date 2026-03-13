@@ -56,36 +56,23 @@ app.get("/", (req, res) => {
 
 /* PLAYER TRACKING */
 app.post("/join", (req,res)=>{
-
     viewers++;
-
     console.log("viewer joined:", viewers);
-
     updatePlayerChannel();
-
     res.sendStatus(200);
-
 });
 
 app.post("/leave", (req,res)=>{
-
     viewers = Math.max(0, viewers - 1);
-
     console.log("viewer left:", viewers);
-
     updatePlayerChannel();
-
     res.sendStatus(200);
-
 });
 
 /* BOT READY */
 client.once('clientReady', async () => {
-
     console.log("Stick Arena Bot Online");
-
     updatePlayerChannel();
-
 });
 
 /* MESSAGE HANDLER */
@@ -107,12 +94,11 @@ client.on('messageCreate', async (message) => {
 
         knowledge.push(learnText);
 
-        if (knowledge.length > 200) {
+        if (knowledge.length > 500) {
             knowledge.shift();
         }
 
         fs.writeFileSync("knowledge.json", JSON.stringify(knowledge, null, 2));
-
         console.log("AI learned:", learnText);
     }
 
@@ -210,6 +196,19 @@ Just load it up and hop in a match.
 
     if (history.length > 6) history.shift();
 
+    /* SMART KNOWLEDGE SEARCH */
+    const words = cleanMessage.split(" ");
+
+    let relevantKnowledge = knowledge.filter(line =>
+        words.some(word => line.includes(word))
+    );
+
+    if (relevantKnowledge.length === 0) {
+        relevantKnowledge = knowledge.slice(0, 20);
+    }
+
+    relevantKnowledge = relevantKnowledge.slice(0, 20).join("\n");
+
     try {
 
         const response = await axios.post(
@@ -218,28 +217,21 @@ Just load it up and hop in a match.
                 model: "llama-3.1-8b-instant",
                 messages: [
                     {
-                   role: "system",
-content: `
+                        role: "system",
+                        content: `
 You are SAV2, the assistant for the Stick Arena V2 Discord server.
 
-Stick Arena Background Knowledge:
-The original Stick Arena was a multiplayer browser fighting game made by XGen Studios.
-Players controlled stick figures fighting in arenas using different weapons.
-Weapons included pistols, shotguns, uzis, grenades, and other pickups.
-Matches were fast-paced arena battles with multiple players fighting at once.
+Stick Arena knowledge comes from the original XGen Studios Stick Arena game and its Ballistick expansion.
 
-Stick Arena V2:
-Stick Arena V2 is inspired by the original XGen Stick Arena game.
-It recreates the fast stickman arena combat but for modern browsers and a new community.
+Stick Arena V2 continues the same arena combat gameplay.
 
 Official site:
 https://us.stickarena.fun/
 
-Talk casually like you're part of the community.
-Use slang sometimes like bro, gang, yo.
+Speak casually like a community member. Use slang occasionally like bro or gang.
 
-Recent server knowledge:
-${knowledge.slice(-15).join("\n")}
+Relevant Stick Arena knowledge:
+${relevantKnowledge}
 `
                     },
                     ...history
@@ -275,7 +267,6 @@ ${knowledge.slice(-15).join("\n")}
 
 client.login(process.env.TOKEN);
 
-/* EXPRESS SERVER */
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
