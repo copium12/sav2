@@ -108,7 +108,7 @@ client.on('messageCreate', async (message) => {
         const button = new ButtonBuilder()
             .setLabel("JOIN SAV2 NOW ⚔️")
             .setStyle(ButtonStyle.Link)
-            .setURL("https://us.stickarena.fun/");
+            .setURL("https://stickarenav2.netlify.app/");
 
         const row = new ActionRowBuilder().addComponents(button);
 
