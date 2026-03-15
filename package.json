@@ -1,18 +1,19 @@
 {
-  "name": "stick-arena-bot",
+  "name": "stickarenabot",
   "version": "1.0.0",
-  "description": "",
+  "description": "Stick Arena Discord Bot",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node bot.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "axios": "^1.13.6",
+    "canvas": "^2.11.2",
     "discord.js": "^14.25.1",
-    "express": "^5.2.1"
+    "express": "^4.19.2"
   }
 }
