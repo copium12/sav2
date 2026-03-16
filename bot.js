@@ -1,7 +1,5 @@
 const { Client, GatewayIntentBits, ButtonBuilder, ButtonStyle, ActionRowBuilder, AttachmentBuilder } = require('discord.js');
 const express = require('express');
-const axios = require('axios');
-const fs = require("fs");
 const Canvas = require("canvas");
 
 const client = new Client({
@@ -167,7 +165,7 @@ ctx.lineWidth = 6;
 
 ctx.strokeRect(5,5,990,390);
 
-/* IMAGE OUTPUT */
+/* OUTPUT IMAGE */
 
 const attachment = new AttachmentBuilder(canvas.toBuffer(),{name:"welcome.png"});
 
@@ -206,6 +204,32 @@ if(interaction.customId.startsWith("wave_")){
 
 await interaction.reply({
 content:`👋 ${interaction.user} waved hello!`
+});
+
+}
+
+});
+
+/* GAME COMMAND */
+
+client.on("messageCreate", async message=>{
+
+if(message.author.bot) return;
+
+if(message.content === "!game"){
+
+const button = new ButtonBuilder()
+.setLabel("JOIN SAV2 NOW ⚔️")
+.setStyle(ButtonStyle.Link)
+.setURL("https://stickarenav2.netlify.app/");
+
+const row = new ActionRowBuilder().addComponents(button);
+
+await message.channel.send({
+content:`⚔️ **STICK ARENA V2**
+
+🟢 Online Count ${viewers}`,
+components:[row]
 });
 
 }
