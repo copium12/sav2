@@ -1,8 +1,8 @@
 {
-  "name": "stickarenabot",
+  "name": "stick-arena-bot",
   "version": "1.0.0",
   "description": "Stick Arena Discord Bot",
-  "main": "index.js",
+  "main": "bot.js",
   "type": "commonjs",
   "scripts": {
     "start": "node bot.js"
