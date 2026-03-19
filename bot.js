@@ -66,9 +66,9 @@ async function updatePanel() {
 async function startTracker() {
 
     const browser = await puppeteer.launch({
-        headless: true,
-        defaultViewport: null
-    });
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+});
 
     const page = await browser.newPage();
 
@@ -256,7 +256,7 @@ if(message.content === "!game"){
 const button = new ButtonBuilder()
 .setLabel("JOIN SAV2 NOW ⚔️")
 .setStyle(ButtonStyle.Link)
-.setURL("https://stickarenav2.netlify.app/join.html");
+.setURL("https://us.stickarena.fun/");
 
 await message.channel.send({
 content:`⚔️ **SAV2**
