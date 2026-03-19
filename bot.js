@@ -1,7 +1,7 @@
-const { Client, GatewayIntentBits, ButtonBuilder, ButtonStyle, ActionRowBuilder, AttachmentBuilder } = require('discord.js');
-const express = require('express');
+const { Client, GatewayIntentBits, ButtonBuilder, ButtonStyle, ActionRowBuilder, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 const axios = require('axios');
 const Canvas = require("canvas");
+const puppeteer = require("puppeteer");
 
 const client = new Client({
     intents: [
@@ -12,27 +12,50 @@ const client = new Client({
     ]
 });
 
-const app = express();
-
-let viewers = 0;
-
 const memory = new Map();
 const cooldown = new Map();
 
 const playerChannelId = "1481485311967100938";
 const welcomeChannelId = "1450265385445097654";
 
-app.use(express.json());
+/* PLAYER DATA */
 
-/* PLAYER COUNT */
+let viewers = 0;
+const players = new Set();
+let panelMessage = null;
 
-async function updatePlayerChannel() {
+/* 🔥 EMBED PANEL */
+
+async function updatePanel() {
     try {
         const channel = await client.channels.fetch(playerChannelId);
-        const newName = `🟢┃𝙊𝙉𝙇𝙄𝙉𝙀 𝘾𝙊𝙐𝙉𝙏 ${viewers}`;
-        if (channel.name !== newName) {
-            await channel.setName(newName);
+
+        const playerArray = [...players];
+        const shown = playerArray.slice(0, 20);
+
+        let list = shown.map(p => `• ${p}`).join("\n");
+
+        if (players.size > 20) {
+            list += `\n+ ${players.size - 20} more...`;
         }
+
+        if (!list) list = "No players online";
+
+        const embed = new EmbedBuilder()
+            .setColor("#00ff88")
+            .setTitle("🟢 Stick Arena Live")
+            .addFields(
+                { name: "Players Online", value: `**${players.size}**`, inline: true },
+                { name: "Live Players", value: list }
+            )
+            .setFooter({ text: "Updates automatically" });
+
+        if (!panelMessage) {
+            panelMessage = await channel.send({ embeds: [embed] });
+        } else {
+            await panelMessage.edit({ embeds: [embed] });
+        }
+
     } catch (err) {
         console.log(err);
     }
@@ -40,30 +63,97 @@ async function updatePlayerChannel() {
 
 /* TRACKER */
 
-app.post("/join",(req,res)=>{
-    viewers++;
-    updatePlayerChannel();
-    res.sendStatus(200);
-});
+async function startTracker() {
 
-app.post("/leave",(req,res)=>{
-    viewers = Math.max(0, viewers - 1);
-    updatePlayerChannel();
-    res.sendStatus(200);
-});
+    const browser = await puppeteer.launch({
+        headless: true,
+        defaultViewport: null
+    });
+
+    const page = await browser.newPage();
+
+    page.on("console", async msg => {
+        const text = msg.text();
+
+        if (text.startsWith("U") && text.includes("########")) {
+
+            try {
+                const match = text.match(/#+([a-zA-Z0-9_]+)/);
+                if (!match) return;
+
+                const username = match[1];
+
+                /* LEAVE */
+                if (text.includes(";0;0;0;0")) {
+                    if (players.has(username)) {
+                        players.delete(username);
+                        viewers = players.size;
+
+                        console.log("❌ LEFT:", username);
+                        updatePanel();
+                    }
+                    return;
+                }
+
+                /* JOIN */
+                if (!players.has(username)) {
+                    players.add(username);
+                    viewers = players.size;
+
+                    console.log("👤 JOINED:", username);
+                    updatePanel();
+                }
+
+            } catch (e) {}
+        }
+    });
+
+    await page.evaluateOnNewDocument(() => {
+        const OriginalWebSocket = window.WebSocket;
+
+        window.WebSocket = function (...args) {
+            const ws = new OriginalWebSocket(...args);
+
+            ws.addEventListener("message", (event) => {
+                try {
+                    if (event.data instanceof ArrayBuffer) {
+                        const bytes = new Uint8Array(event.data);
+
+                        let text = "";
+                        for (let i = 0; i < bytes.length; i++) {
+                            text += String.fromCharCode(bytes[i]);
+                        }
+
+                        console.log(text);
+                    } else {
+                        console.log(event.data);
+                    }
+                } catch (err) {}
+            });
+
+            return ws;
+        };
+    });
+
+    await page.goto("https://us.stickarena.fun");
+
+    console.log("🔥 Tracker running (EMBED MODE)");
+}
 
 /* READY */
 
-client.once("clientReady",()=>{
+client.once("clientReady", async () => {
     console.log("Stick Arena Bot Online");
-    updatePlayerChannel();
+
+    updatePanel();
+    startTracker();
 });
 
 /* WELCOME */
 
-client.on("guildMemberAdd", async (member)=>{
+client.on("guildMemberAdd", async (member) => {
 
-try{
+try {
 
 await member.send(`🔥 **Welcome to Stick Arena V2, ${member.user.username}!** ⚔️
 
@@ -77,9 +167,9 @@ Just type **@Active** in chat and players will jump in.
 
 See you in the arena 🥊`);
 
-}catch{}
+} catch {}
 
-try{
+try {
 
 const canvas = Canvas.createCanvas(1000,400);
 const ctx = canvas.getContext("2d");
@@ -90,23 +180,19 @@ if(!bannerURL) bannerURL = "https://i.imgur.com/0j0Z8FZ.png";
 const banner = await Canvas.loadImage(bannerURL);
 ctx.drawImage(banner,0,0,1000,400);
 
-/* gradient */
 const gradient = ctx.createLinearGradient(0,0,1000,0);
 gradient.addColorStop(0,"rgba(0,0,0,0.7)");
 gradient.addColorStop(1,"rgba(0,0,0,0.2)");
 ctx.fillStyle = gradient;
 ctx.fillRect(0,0,1000,400);
 
-/* username */
 ctx.fillStyle="#fff";
 ctx.font="bold 55px sans-serif";
 ctx.fillText(member.user.username,350,200);
 
-/* member count */
 ctx.font="30px sans-serif";
 ctx.fillText(`Member #${member.guild.memberCount}`,350,250);
 
-/* avatar */
 const avatar = await Canvas.loadImage(member.user.displayAvatarURL({extension:"png"}));
 ctx.save();
 ctx.beginPath();
@@ -115,7 +201,6 @@ ctx.clip();
 ctx.drawImage(avatar,50,80,240,240);
 ctx.restore();
 
-/* glow */
 ctx.beginPath();
 ctx.arc(170,200,130,0,Math.PI*2);
 ctx.lineWidth = 8;
@@ -124,7 +209,6 @@ ctx.shadowColor = "#00ff88";
 ctx.shadowBlur = 25;
 ctx.stroke();
 
-/* border */
 ctx.shadowBlur = 35;
 ctx.strokeStyle = "#00ff88";
 ctx.lineWidth = 6;
@@ -145,7 +229,7 @@ files:[attachment],
 components:[new ActionRowBuilder().addComponents(waveButton)]
 });
 
-}catch(err){
+} catch(err) {
 console.log(err);
 }
 
@@ -153,7 +237,7 @@ console.log(err);
 
 /* BUTTON */
 
-client.on("interactionCreate", async interaction=>{
+client.on("interactionCreate", async interaction => {
 if(!interaction.isButton()) return;
 if(interaction.customId.startsWith("wave_")){
 await interaction.reply({content:`👋 ${interaction.user} waved hello!`});
@@ -162,7 +246,7 @@ await interaction.reply({content:`👋 ${interaction.user} waved hello!`});
 
 /* MESSAGE HANDLER */
 
-client.on("messageCreate", async (message)=>{
+client.on("messageCreate", async (message) => {
 
 if(message.author.bot) return;
 
@@ -177,7 +261,7 @@ const button = new ButtonBuilder()
 await message.channel.send({
 content:`⚔️ **SAV2**
 
-🟢 Online Count ${viewers}`,
+🟢 Online Count ${players.size}`,
 components:[new ActionRowBuilder().addComponents(button)]
 });
 }
@@ -212,7 +296,7 @@ const vibes = [
 
 const vibe = vibes[Math.floor(Math.random()*vibes.length)];
 
-try{
+try {
 
 const res = await axios.post(
 "https://api.groq.com/openai/v1/chat/completions",
@@ -250,7 +334,7 @@ memory.set(userId,history);
 
 message.reply(reply);
 
-}catch(err){
+} catch(err) {
 console.log(err);
 message.reply("ngl I lagged 😭");
 }
@@ -260,6 +344,3 @@ message.reply("ngl I lagged 😭");
 /* LOGIN */
 
 client.login(process.env.TOKEN);
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT,()=>console.log(`Tracker running on ${PORT}`));
