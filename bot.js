@@ -33,10 +33,10 @@ const cooldown = new Map();
 
 /* ================== PLAYER TRACKER ================== */
 
-const players = new Map(); // username -> lastSeen
+const players = new Map();
 let messageRef = null;
 
-/* ================== WEBSOCKET TRACKER ================== */
+/* ================== WEBSOCKET ================== */
 
 function startTracker() {
     const ws = new WebSocket("wss://ws.stickarena.fun:1138");
@@ -46,52 +46,45 @@ function startTracker() {
     });
 
     ws.on("message", (data) => {
-    const msg = data.toString();
+        const msg = data.toString();
 
-    // only care about player update packets
-    if (!msg.startsWith("U1")) return;
+        // DEBUG: SEE EVERYTHING
+        console.log("RAW:", msg);
 
-    try {
-        // remove hashes (they're padding)
-        const clean = msg.replace(/#+/g, "");
+        try {
+            const clean = msg.replace(/#+/g, "");
 
-        // split by separators
-        const parts = clean.split(/[;:]/);
+            // 🔥 MATCH usernames BEFORE numbers (your packet style)
+            const matches = clean.match(/[a-zA-Z_]{2,16}(?=\d)/g);
 
-        for (let part of parts) {
-            part = part.trim();
+            if (!matches) return;
 
-            // username rules
-            if (
-                part.length >= 2 &&
-                part.length <= 16 &&
-                /^[a-zA-Z0-9_]+$/.test(part) &&
-                !part.match(/^\d+$/) // skip pure numbers
-            ) {
-                handleJoin(part);
+            for (const username of matches) {
+                handleJoin(username);
             }
-        }
 
-    } catch (err) {}
-});
-
-    ws.on("close", () => {
-        console.log("❌ WS Disconnected... reconnecting");
-        setTimeout(startTracker, 3000);
+        } catch {}
     });
 
-    ws.on("error", () => {});
+    ws.on("close", () => {
+        console.log("❌ WS closed... reconnecting");
+        setTimeout(startTracker, 3000);
+    });
 }
 
 /* ================== JOIN ================== */
 
 function handleJoin(username) {
+    console.log("ADDING:", username);
+
     players.set(username, Date.now());
-    console.log(`👤 JOINED: ${username}`);
+
+    console.log("CURRENT PLAYERS:", [...players.keys()]);
+
     updateDiscord();
 }
 
-/* ================== LEAVE DETECTION ================== */
+/* ================== LEAVE ================== */
 
 setInterval(() => {
     const now = Date.now();
@@ -99,14 +92,14 @@ setInterval(() => {
     for (const [user, time] of players) {
         if (now - time > 15000) {
             players.delete(user);
-            console.log(`👋 LEFT: ${user}`);
+            console.log("REMOVED:", user);
         }
     }
 
     updateDiscord();
 }, 5000);
 
-/* ================== DISCORD EMBED ================== */
+/* ================== DISCORD UPDATE ================== */
 
 async function updateDiscord() {
     try {
@@ -129,18 +122,17 @@ async function updateDiscord() {
             footer: { text: "Live updating" }
         };
 
-        // 🔥 TRY EDIT
+        // 🔥 TRY EDIT FIRST
         if (messageRef) {
             try {
                 await messageRef.edit({ embeds: [embed] });
                 return;
-            } catch (err) {
-                // message probably deleted
+            } catch {
                 messageRef = null;
             }
         }
 
-        // 🔥 SEND NEW MESSAGE IF NEEDED
+        // 🔥 SEND NEW IF BROKEN
         messageRef = await channel.send({ embeds: [embed] });
 
     } catch (err) {
@@ -155,24 +147,17 @@ client.once("clientReady", () => {
     startTracker();
 });
 
-/* ================== CLEAN WELCOME ================== */
+/* ================== WELCOME ================== */
 
 client.on("guildMemberAdd", async (member) => {
-
     try {
         await member.send(`🔥 Welcome to Stick Arena V2, ${member.user.username}!`);
     } catch {}
 
     try {
         const channel = await client.channels.fetch(welcomeChannelId);
-
-        await channel.send({
-            content: `👋 Everyone welcome <@${member.id}> to **Stick Arena V2!**`
-        });
-
-    } catch (err) {
-        console.log(err);
-    }
+        await channel.send(`👋 Everyone welcome <@${member.id}> to **Stick Arena V2!**`);
+    } catch {}
 });
 
 /* ================== MESSAGE ================== */
@@ -187,7 +172,7 @@ if(message.content === "!game"){
 const button = new ButtonBuilder()
 .setLabel("JOIN SAV2 NOW ⚔️")
 .setStyle(ButtonStyle.Link)
-.setURL("https://us.stickarena.fun/");
+.setURL("https://stickarenav2.netlify.app/join.html");
 
 await message.channel.send({
 content:`⚔️ SAV2\n\n🟢 Online Count ${players.size}`,
@@ -225,7 +210,7 @@ model:"llama-3.1-8b-instant",
 messages:[
 {
 role:"system",
-content:`You are SAV2. Be casual, funny, short.`
+content:`Be casual, short, funny.`
 },
 ...history
 ]
@@ -238,10 +223,12 @@ Authorization:`Bearer ${process.env.GROQ_KEY}`,
 }
 );
 
-const reply = res.data.choices[0].message.content;
+let reply = res.data.choices[0].message.content;
 
-history.push({role:"assistant",content:reply});
-memory.set(userId,history);
+// 🔥 LIMIT LENGTH
+if (reply.length > 2000) {
+    reply = reply.slice(0, 1990) + "...";
+}
 
 message.reply(reply);
 
@@ -252,7 +239,7 @@ message.reply("ngl I lagged 😭");
 
 });
 
-/* ================== EXPRESS (RENDER FIX) ================== */
+/* ================== EXPRESS ================== */
 
 const app = express();
 
