@@ -46,25 +46,30 @@ function startTracker() {
     });
 
     ws.on("message", (data) => {
-        const msg = data.toString();
+    let msg;
 
-        // DEBUG: SEE EVERYTHING
-        console.log("RAW:", msg);
+    // handle binary packets too
+    if (Buffer.isBuffer(data)) {
+        msg = data.toString("utf8");
+    } else {
+        msg = data.toString();
+    }
 
-        try {
-            const clean = msg.replace(/#+/g, "");
+    console.log("RAW:", msg); // 🔥 MUST SEE THIS
 
-            // 🔥 MATCH usernames BEFORE numbers (your packet style)
-            const matches = clean.match(/[a-zA-Z_]{2,16}(?=\d)/g);
+    try {
+        const clean = msg.replace(/#+/g, "");
 
-            if (!matches) return;
+        const matches = clean.match(/[a-zA-Z_]{2,16}(?=\d)/g);
 
-            for (const username of matches) {
-                handleJoin(username);
-            }
+        if (!matches) return;
 
-        } catch {}
-    });
+        for (const username of matches) {
+            handleJoin(username);
+        }
+
+    } catch {}
+});
 
     ws.on("close", () => {
         console.log("❌ WS closed... reconnecting");
