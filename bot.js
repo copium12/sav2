@@ -46,23 +46,34 @@ function startTracker() {
     });
 
     ws.on("message", (data) => {
-        const msg = data.toString();
+    const msg = data.toString();
 
-        // detect player packets
-        if (msg.startsWith("U")) {
-            try {
-                const match = msg.match(/([a-zA-Z0-9_]{3,})/g);
-                if (!match) return;
+    // only care about player update packets
+    if (!msg.startsWith("U1")) return;
 
-                const username = match[match.length - 1];
+    try {
+        // remove hashes (they're padding)
+        const clean = msg.replace(/#+/g, "");
 
-                if (username && username.length < 20) {
-                    handleJoin(username);
-                }
+        // split by separators
+        const parts = clean.split(/[;:]/);
 
-            } catch {}
+        for (let part of parts) {
+            part = part.trim();
+
+            // username rules
+            if (
+                part.length >= 2 &&
+                part.length <= 16 &&
+                /^[a-zA-Z0-9_]+$/.test(part) &&
+                !part.match(/^\d+$/) // skip pure numbers
+            ) {
+                handleJoin(part);
+            }
         }
-    });
+
+    } catch (err) {}
+});
 
     ws.on("close", () => {
         console.log("❌ WS Disconnected... reconnecting");
@@ -115,16 +126,22 @@ async function updateDiscord() {
             color: 0x00ff88,
             title: "🟢 Stick Arena Live",
             description: `**Players Online:** ${players.size}\n\n${list}`,
-            footer: {
-                text: "Live updating"
-            }
+            footer: { text: "Live updating" }
         };
 
-        if (!messageRef) {
-            messageRef = await channel.send({ embeds: [embed] });
-        } else {
-            await messageRef.edit({ embeds: [embed] });
+        // 🔥 TRY EDIT
+        if (messageRef) {
+            try {
+                await messageRef.edit({ embeds: [embed] });
+                return;
+            } catch (err) {
+                // message probably deleted
+                messageRef = null;
+            }
         }
+
+        // 🔥 SEND NEW MESSAGE IF NEEDED
+        messageRef = await channel.send({ embeds: [embed] });
 
     } catch (err) {
         console.log(err);
