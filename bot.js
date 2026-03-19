@@ -3,12 +3,11 @@ const {
     GatewayIntentBits, 
     ButtonBuilder, 
     ButtonStyle, 
-    ActionRowBuilder, 
-    AttachmentBuilder 
+    ActionRowBuilder 
 } = require('discord.js');
 
 const axios = require('axios');
-const WebSocket = require("ws");
+const WebSocket = require('ws');
 const express = require("express");
 
 /* ================== CLIENT ================== */
@@ -49,13 +48,12 @@ function startTracker() {
     ws.on("message", (data) => {
         const msg = data.toString();
 
-        // 🔑 LOGIN / PLAYER DATA PACKETS
-        if (msg.startsWith("U1") || msg.startsWith("U1rc")) {
+        // detect player packets
+        if (msg.startsWith("U")) {
             try {
-                const match = msg.match(/([a-zA-Z0-9_]+)/g);
+                const match = msg.match(/([a-zA-Z0-9_]{3,})/g);
                 if (!match) return;
 
-                // last readable string = username
                 const username = match[match.length - 1];
 
                 if (username && username.length < 20) {
@@ -104,14 +102,21 @@ async function updateDiscord() {
         const channel = await client.channels.fetch(playerChannelId);
 
         const names = [...players.keys()];
-        const display = names.slice(0, 20).join("\n") || "No players online";
+        const shown = names.slice(0, 20);
+
+        let list = shown.map(p => `• ${p}`).join("\n");
+        if (!list) list = "No players online";
+
+        if (names.length > 20) {
+            list += `\n+ ${names.length - 20} more...`;
+        }
 
         const embed = {
             color: 0x00ff88,
             title: "🟢 Stick Arena Live",
-            description: `**Players Online:** ${players.size}\n\n${display}`,
+            description: `**Players Online:** ${players.size}\n\n${list}`,
             footer: {
-                text: names.length > 20 ? `+${names.length - 20} more...` : "Live updating"
+                text: "Live updating"
             }
         };
 
@@ -133,22 +138,24 @@ client.once("clientReady", () => {
     startTracker();
 });
 
-/* ================== WELCOME ================== */
+/* ================== CLEAN WELCOME ================== */
 
 client.on("guildMemberAdd", async (member) => {
 
-try {
+    try {
+        await member.send(`🔥 Welcome to Stick Arena V2, ${member.user.username}!`);
+    } catch {}
 
-await member.send(`🔥 **Welcome to Stick Arena V2, ${member.user.username}!** ⚔️
+    try {
+        const channel = await client.channels.fetch(welcomeChannelId);
 
-You're now part of the community!
+        await channel.send({
+            content: `👋 Everyone welcome <@${member.id}> to **Stick Arena V2!**`
+        });
 
-📎 https://discord.com/channels/1032830761314832444/1478084954796593152
-
-See you in the arena 🥊`);
-
-} catch {}
-
+    } catch (err) {
+        console.log(err);
+    }
 });
 
 /* ================== MESSAGE ================== */
