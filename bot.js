@@ -1,6 +1,5 @@
 const { Client, GatewayIntentBits, ButtonBuilder, ButtonStyle, ActionRowBuilder, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 const axios = require('axios');
-const Canvas = require("canvas");
 const puppeteer = require("puppeteer");
 
 const client = new Client({
@@ -43,7 +42,7 @@ async function updatePanel() {
 
         const embed = new EmbedBuilder()
             .setColor("#00ff88")
-            .setTitle("🟢 Stick Arena Live")
+            .setTitle("🟢 Stick Arena V2")
             .addFields(
                 { name: "Players Online", value: `**${players.size}**`, inline: true },
                 { name: "Live Players", value: list }
