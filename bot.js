@@ -8,7 +8,6 @@ const {
 } = require('discord.js');
 
 const axios = require('axios');
-const Canvas = require("canvas");
 const WebSocket = require("ws");
 const express = require("express");
 
