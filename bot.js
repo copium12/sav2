@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const axios = require('axios');
 const express = require("express");
+const fs = require("fs");
 
 const client = new Client({
     intents: [
@@ -15,6 +16,16 @@ const memory = new Map();
 const cooldown = new Map();
 
 const welcomeChannelId = "1450265385445097654";
+
+/* =========================
+   LOAD KNOWLEDGE
+========================= */
+
+let knowledge = [];
+
+if (fs.existsSync("knowledge.json")) {
+    knowledge = JSON.parse(fs.readFileSync("knowledge.json"));
+}
 
 /* =========================
    READY
@@ -81,13 +92,36 @@ client.on("messageCreate", async (message) => {
 
     if (message.author.bot) return;
 
-    /* GAME BUTTON */
+    const content = message.content.toLowerCase();
+
+    /* =========================
+       AUTO LEARNING SYSTEM
+    ========================= */
+
+    if (
+        content.length > 15 &&
+        !content.startsWith("!") &&
+        !content.includes("http") &&
+        !content.includes("@")
+    ) {
+        knowledge.push(content);
+
+        if (knowledge.length > 1000) {
+            knowledge.shift();
+        }
+
+        fs.writeFileSync("knowledge.json", JSON.stringify(knowledge, null, 2));
+    }
+
+    /* =========================
+       GAME BUTTON
+    ========================= */
 
     if (message.content === "!game") {
         const button = new ButtonBuilder()
             .setLabel("JOIN SAV2 NOW ⚔️")
             .setStyle(ButtonStyle.Link)
-            .setURL("https://stickarenav2.netlify.app/join.html");
+            .setURL("https://us.stickarena.fun/");
 
         await message.channel.send({
             content: `⚔️ SAV2\n\nClick below to join`,
@@ -95,7 +129,9 @@ client.on("messageCreate", async (message) => {
         });
     }
 
-    /* REQUIRE MENTION FOR AI */
+    /* =========================
+       REQUIRE MENTION
+    ========================= */
 
     if (!message.mentions.has(client.user)) return;
 
@@ -134,6 +170,20 @@ client.on("messageCreate", async (message) => {
 
     const vibe = vibes[Math.floor(Math.random() * vibes.length)];
 
+    /* SMART KNOWLEDGE */
+
+    const words = clean.toLowerCase().split(" ");
+
+    let relevant = knowledge.filter(line =>
+        words.some(word => line.includes(word))
+    );
+
+    if (relevant.length === 0) {
+        relevant = knowledge.sort(() => 0.5 - Math.random()).slice(0, 8);
+    }
+
+    relevant = relevant.slice(0, 8).join("\n");
+
     try {
 
         const res = await axios.post(
@@ -151,6 +201,11 @@ ${vibe}.
 Talk naturally like a real person.
 Use slang casually.
 Keep responses short.
+
+You can use this server knowledge if helpful:
+${relevant}
+
+Do NOT force it.
 Never sound like AI.
 `
                     },
@@ -166,8 +221,6 @@ Never sound like AI.
         );
 
         let reply = res.data.choices[0].message.content;
-
-        /* PREVENT LONG MESSAGES */
 
         if (reply.length > 1900) {
             reply = reply.slice(0, 1900);
