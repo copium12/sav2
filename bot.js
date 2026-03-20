@@ -30,7 +30,17 @@ client.once("ready", () => {
 
 client.on("guildMemberAdd", async (member) => {
     try {
-        await member.send(`🔥 Welcome to Stick Arena V2, ${member.user.username}!`);
+        await member.send(`🔥 **Welcome to Stick Arena V2, ${member.user.username}!** ⚔️
+
+You're now part of the community!
+
+📎 Everything you need can be found here:
+https://discord.com/channels/1032830761314832444/1478084954796593152
+
+🎮 Want to play?
+Just type **@Active** in chat and players will jump in.
+
+See you in the arena 🥊`);
     } catch {}
 
     try {
@@ -69,118 +79,109 @@ client.on("interactionCreate", async interaction => {
 
 client.on("messageCreate", async (message) => {
 
-if(message.author.bot) return;
+    if (message.author.bot) return;
 
-/* GAME BUTTON */
+    /* GAME BUTTON */
 
-if(message.content === "!game"){
-const button = new ButtonBuilder()
-.setLabel("JOIN SAV2 NOW ⚔️")
-.setStyle(ButtonStyle.Link)
-.setURL("https://stickarenav2.netlify.app/join.html");
+    if (message.content === "!game") {
+        const button = new ButtonBuilder()
+            .setLabel("JOIN SAV2 NOW ⚔️")
+            .setStyle(ButtonStyle.Link)
+            .setURL("https://stickarenav2.netlify.app/join.html");
 
-await message.channel.send({
-content:`⚔️ SAV2\n\nClick below to join`,
-components:[new ActionRowBuilder().addComponents(button)]
-});
-}
+        await message.channel.send({
+            content: `⚔️ SAV2\n\nClick below to join`,
+            components: [new ActionRowBuilder().addComponents(button)]
+        });
+    }
 
-/* =========================
-   REAL-TIME SMART RESPONSES
-========================= */
+    /* REQUIRE MENTION FOR AI */
 
-const msg = message.content.toLowerCase();
+    if (!message.mentions.has(client.user)) return;
 
-// date
-if (msg.includes("date")) {
-    return message.reply(`📅 Today is ${new Date().toLocaleDateString()}`);
-}
+    const clean = message.content
+        .replace(`<@${client.user.id}>`, "")
+        .trim();
 
-// time
-if (msg.includes("time")) {
-    return message.reply(`⏰ It’s ${new Date().toLocaleTimeString()}`);
-}
+    const userId = message.author.id;
 
-// day
-if (msg.includes("what day")) {
-    return message.reply(`📆 Today is ${new Date().toLocaleString('en-US', { weekday: 'long' })}`);
-}
+    /* COOLDOWN */
 
-/* =========================
-   AI CHAT
-========================= */
+    if (cooldown.get(userId) > Date.now()) {
+        return message.reply("⏳ chill bro");
+    }
 
-if(!message.mentions.has(client.user)) return;
+    cooldown.set(userId, Date.now() + 4000);
 
-const clean = message.content.replace(`<@${client.user.id}>`,"").trim();
-const userId = message.author.id;
+    await message.channel.sendTyping();
 
-if(cooldown.get(userId) > Date.now()){
-return message.reply("⏳ chill bro");
-}
+    /* MEMORY */
 
-cooldown.set(userId, Date.now() + 4000);
+    if (!memory.has(userId)) memory.set(userId, []);
+    const history = memory.get(userId);
 
-await message.channel.sendTyping();
+    history.push({ role: "user", content: clean });
+    if (history.length > 6) history.shift();
 
-if(!memory.has(userId)) memory.set(userId,[]);
-const history = memory.get(userId);
+    /* PERSONALITY */
 
-history.push({role:"user",content:clean});
-if(history.length > 6) history.shift();
+    const vibes = [
+        "be funny and slightly sarcastic",
+        "be chill and helpful",
+        "be casual and short",
+        "be playful and a little toxic but not offensive"
+    ];
 
-const now = new Date();
+    const vibe = vibes[Math.floor(Math.random() * vibes.length)];
 
-try {
+    try {
 
-const res = await axios.post(
-"https://api.groq.com/openai/v1/chat/completions",
-{
-model:"llama-3.1-8b-instant",
-messages:[
-{
-role:"system",
-content: `
+        const res = await axios.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            {
+                model: "llama-3.1-8b-instant",
+                messages: [
+                    {
+                        role: "system",
+                        content: `
 You are SAV2, a real Discord user.
 
-Be casual, funny, short.
+${vibe}.
 
-You know:
-- Today’s date: ${now.toLocaleDateString()}
-- Current time: ${now.toLocaleTimeString()}
-- Day: ${now.toLocaleString('en-US', { weekday: 'long' })}
-
-Answer naturally like a real person.
-Use slang sometimes.
-Never sound like AI.
+Talk naturally like a real person.
+Use slang casually.
 Keep responses short.
+Never sound like AI.
 `
-},
-...history
-]
-},
-{
-headers:{
-Authorization:`Bearer ${process.env.GROQ_KEY}`,
-"Content-Type":"application/json"
-}
-}
-);
+                    },
+                    ...history
+                ]
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.GROQ_KEY}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
 
-let reply = res.data.choices[0].message.content;
+        let reply = res.data.choices[0].message.content;
 
-// prevent crash
-if (reply.length > 1900) reply = reply.slice(0, 1900);
+        /* PREVENT LONG MESSAGES */
 
-history.push({role:"assistant",content:reply});
-memory.set(userId,history);
+        if (reply.length > 1900) {
+            reply = reply.slice(0, 1900);
+        }
 
-message.reply(reply);
+        history.push({ role: "assistant", content: reply });
+        memory.set(userId, history);
 
-} catch(err) {
-console.log(err);
-message.reply("ngl I lagged 😭");
-}
+        message.reply(reply);
+
+    } catch (err) {
+        console.log(err);
+        message.reply("ngl I lagged 😭");
+    }
 
 });
 
@@ -189,6 +190,7 @@ message.reply("ngl I lagged 😭");
 ========================= */
 
 const app = express();
+
 app.get("/", (req, res) => res.send("alive"));
 
 app.listen(process.env.PORT || 3000, () => {
